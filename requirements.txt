@@ -2,3 +2,6 @@ requests
 beautifulsoup4
 openai
 python-docx
+flask
+flask-cors
+flask-socketio
