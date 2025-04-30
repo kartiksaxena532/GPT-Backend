@@ -5,3 +5,6 @@ python-docx
 flask
 flask-cors
 flask-socketio
+python-dotenv
+docx
+tiktoken
