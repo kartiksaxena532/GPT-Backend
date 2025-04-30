@@ -1,4 +1,5 @@
 from flask import Flask, request, send_file
+from flask_cors import CORS  # Import CORS
 from docx import Document
 from utils.docx_editor import replace_placeholders
 from utils.patent_scraper import scrape_google_patent
@@ -9,6 +10,9 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
+
+# Enable CORS for all routes and all origins
+CORS(app)  # This will allow all domains to access your API
 
 # Folder paths for templates and output
 TEMPLATES_FOLDER = os.path.join(os.getcwd(), 'templates')
