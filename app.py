@@ -53,7 +53,7 @@ def edit_template():
     replacements = {
         'name': name,
         'date': datetime.today().strftime('%d-%m-%Y'),
-        'company': 'ExampleCorp',  # Default, can be replaced if needed
+        'company': 'GreyB',  # Default, can be replaced if needed
         'patent': patent_id,
         'cutoff_date': cutoff_date,
         'priority_date': 'N/A'
