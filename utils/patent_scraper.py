@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 # USPTO API URL (example to get patent details by patent number)
 USPTO_API_URL = "https://api.uspto.gov/patent/v1/patent/{patent_id}"
 
-def get_patent_info(patent_id, retries=3):
+def scrape_google_patent(patent_id, retries=3):
     # Format the URL with the patent ID
     url = USPTO_API_URL.format(patent_id=patent_id)
 
