@@ -1,8 +1,8 @@
+import time
 import requests
 from bs4 import BeautifulSoup
-import time
 
-def scrape_google_patent(patent_id, retries=5):
+def scrape_google_patent(patent_id, retries=3):
     url = f"https://patents.google.com/patent/{patent_id}/en"
     headers = {"User-Agent": "Mozilla/5.0"}
     
@@ -13,11 +13,11 @@ def scrape_google_patent(patent_id, retries=5):
             # Successfully fetched the patent data
             break
         elif response.status_code == 503:
-            # Server is temporarily unavailable, retry after exponential backoff
+            # Retry with a smaller delay
             print(f"Attempt {attempt + 1} failed with 503. Retrying...")
-            time.sleep(2 ** attempt)  # Exponential backoff (2, 4, 8, 16 seconds)
+            time.sleep(2)  # Fixed backoff, smaller delay
         else:
-            # Other status codes (e.g., 404, 500), log and raise the exception
+            # Handle other errors
             raise Exception(f"Patent {patent_id} not found or blocked. Status code: {response.status_code}")
     
     if response.status_code != 200:
@@ -35,37 +35,15 @@ def scrape_google_patent(patent_id, retries=5):
         "priority_date": ""
     }
 
-    # Get title
-    title_tag = soup.find("span", itemprop="title")
-    data["title"] = title_tag.text.strip() if title_tag else "Title not available"
-
-    # Get abstract
-    abstract_tag = soup.find("meta", {"name": "DC.description"})
-    data["abstract"] = abstract_tag.get("content", "Abstract not available") if abstract_tag else "Abstract not available"
-
-    # Get description
-    desc_tag = soup.find("section", itemprop="description")
-    data["description"] = desc_tag.get_text(strip=True) if desc_tag else "Description not available"
-
-    # Get claims
+    # Extract data
+    data["title"] = soup.find("span", itemprop="title").text.strip() if soup.find("span", itemprop="title") else "Title not available"
+    data["abstract"] = soup.find("meta", {"name": "DC.description"}).get("content", "Abstract not available") if soup.find("meta", {"name": "DC.description"}) else "Abstract not available"
+    data["description"] = soup.find("section", itemprop="description").get_text(strip=True) if soup.find("section", itemprop="description") else "Description not available"
     claims_section = soup.find("section", itemprop="claims")
-    if claims_section:
-        data["claims"] = [claim.get_text(strip=True) for claim in claims_section.find_all("div", class_="claim-text")]
-    else:
-        data["claims"] = ["Claims not available"]
+    data["claims"] = [claim.get_text(strip=True) for claim in claims_section.find_all("div", class_="claim-text")] if claims_section else ["Claims not available"]
+    data["priority_date"] = soup.find("time", itemprop="priorityDate").get_text(strip=True) if soup.find("time", itemprop="priorityDate") else "Priority date not available"
 
-    # Get priority date
-    priority_date_tag = soup.find("time", itemprop="priorityDate")
-    data["priority_date"] = priority_date_tag.get_text(strip=True) if priority_date_tag else "Priority date not available"
-
-    # Add a delay between requests to avoid being blocked by Google Patents
-    time.sleep(2)  # sleep for 2 seconds (adjust based on your scraping volume)
+    # Add delay between requests
+    time.sleep(2)
 
     return data
-
-# Example usage
-try:
-    patent_data = scrape_google_patent("US11134316B1")
-    print(patent_data)
-except Exception as e:
-    print("Error scraping patent:", e)
