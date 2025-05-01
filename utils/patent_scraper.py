@@ -1,49 +1,63 @@
 import time
 import requests
+import random
 from bs4 import BeautifulSoup
 
-def scrape_google_patent(patent_id, retries=3):
-    url = f"https://patents.google.com/patent/{patent_id}/en"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    
+# USPTO API URL (example to get patent details by patent number)
+USPTO_API_URL = "https://api.uspto.gov/patent/v1/patent/{patent_id}"
+
+def get_patent_info(patent_id, retries=3):
+    # Format the URL with the patent ID
+    url = USPTO_API_URL.format(patent_id=patent_id)
+
+    # List of User-Agents to rotate (optional for further optimization)
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 6.1; rv:40.0) Gecko/20100101 Firefox/40.0"
+    ]
+    headers = {"User-Agent": random.choice(user_agents)}  # Randomize User-Agent
+
+    # Retry logic with exponential backoff
     for attempt in range(retries):
         response = requests.get(url, headers=headers)
-        
+
         if response.status_code == 200:
             # Successfully fetched the patent data
+            print(f"Successfully fetched patent {patent_id}")
             break
         elif response.status_code == 503:
-            # Retry with a smaller delay
-            print(f"Attempt {attempt + 1} failed with 503. Retrying...")
-            time.sleep(2)  # Fixed backoff, smaller delay
+            # Server unavailable, retry with backoff
+            print(f"Attempt {attempt + 1} failed with 503. Retrying in {2 ** attempt} seconds...")
+            time.sleep(2 ** attempt)  # Exponential backoff (2, 4, 8 seconds, etc.)
         else:
-            # Handle other errors
+            # Handle other errors (e.g., 404, 500)
             raise Exception(f"Patent {patent_id} not found or blocked. Status code: {response.status_code}")
     
     if response.status_code != 200:
         raise Exception(f"Failed to retrieve patent {patent_id} after {retries} attempts.")
-    
-    # Parse the HTML response
-    soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Create a dictionary to store the data
-    data = {
-        "title": "",
-        "abstract": "",
-        "description": "",
-        "claims": [],
-        "priority_date": ""
+    # Extract data from the response
+    data = response.json()
+
+    # Create a dictionary to store the extracted patent data
+    patent_data = {
+        "title": data.get("title", "Title not available"),
+        "abstract": data.get("abstract", "Abstract not available"),
+        "description": data.get("description", "Description not available"),
+        "claims": data.get("claims", "Claims not available"),
+        "priority_date": data.get("priority_date", "Priority date not available"),
     }
 
-    # Extract data
-    data["title"] = soup.find("span", itemprop="title").text.strip() if soup.find("span", itemprop="title") else "Title not available"
-    data["abstract"] = soup.find("meta", {"name": "DC.description"}).get("content", "Abstract not available") if soup.find("meta", {"name": "DC.description"}) else "Abstract not available"
-    data["description"] = soup.find("section", itemprop="description").get_text(strip=True) if soup.find("section", itemprop="description") else "Description not available"
-    claims_section = soup.find("section", itemprop="claims")
-    data["claims"] = [claim.get_text(strip=True) for claim in claims_section.find_all("div", class_="claim-text")] if claims_section else ["Claims not available"]
-    data["priority_date"] = soup.find("time", itemprop="priorityDate").get_text(strip=True) if soup.find("time", itemprop="priorityDate") else "Priority date not available"
-
-    # Add delay between requests
+    # Add a delay between requests to avoid being blocked (adjust as needed)
     time.sleep(2)
 
-    return data
+    return patent_data
+
+# Example usage
+try:
+    patent_id = "US11134316B1"  # Example patent ID
+    patent_data = get_patent_info(patent_id)
+    print(patent_data)
+except Exception as e:
+    print(f"Error fetching patent data: {e}")
