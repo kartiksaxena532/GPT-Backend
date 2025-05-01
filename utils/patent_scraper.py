@@ -57,7 +57,7 @@ def scrape_google_patent(patent_id, retries=3):
 # Example usage
 try:
     patent_id = "US11134316B1"  # Example patent ID
-    patent_data = get_patent_info(patent_id)
+    patent_data = scrape_google_patent(patent_id)
     print(patent_data)
 except Exception as e:
     print(f"Error fetching patent data: {e}")
