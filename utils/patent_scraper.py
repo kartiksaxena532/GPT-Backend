@@ -83,7 +83,7 @@ def scrape_google_patent(patent_id, retries=3):
 if __name__ == "__main__":
     patent_id = "US11134316B1"
     try:
-        data = scrape_google_patents(patent_id)
+        data = scrape_google_patent(patent_id)
         print(data)
     except Exception as e:
         print(f"Error: {e}")
